@@ -112,6 +112,16 @@ if !exists("g:DirDiffTextOnlyInCenter")
     let g:DirDiffTextOnlyInCenter = ": "
 endif
 
+" Open DirDiff in new tab
+if !exists("g:DirDiffNewTab")
+    let g:DirDiffNewTab = 0
+endif
+
+" Auto open first difference file
+if !exists("g:DirDiffOpenFirst")
+    let g:DirDiffOpenFirst = 1
+endif
+
 " Set some script specific variables:
 "
 let s:DirDiffFirstDiffLine = 6
@@ -207,14 +217,20 @@ function! <SID>DirDiff(srcA, srcB)
     let cmd = cmd.cmdarg." ".addarg." \"".DirDiffAbsSrcA."\" \"".DirDiffAbsSrcB."\""
     let cmd = cmd." > \"".DiffBuffer."\""
 
-    echo "Diffing directories, it may take a while..."
+    redraw | echo "Diffing directories, it may take a while..."
     let error = <SID>DirDiffExec(cmd, 0)
     if (error == 0)
         redraw | echom "diff found no differences - directories match."
         return
     endif
-    silent exe "edit ".DiffBuffer
-    echo "Defining [A] and [B] ... "
+
+    if( g:DirDiffNewTab==1 )
+        silent exe "tabedit ".DiffBuffer
+    else
+        silent exe "edit ".DiffBuffer
+    endif
+
+    redraw | echo "Defining [A] and [B] ... "
     " We then do a substitution on the directory path
     " We need to do substitution of the the LONGER string first, otherwise
     " it'll mix up the A and B directory
@@ -231,7 +247,7 @@ function! <SID>DirDiff(srcA, srcB)
         silent! %s/\//\\/g
     endif
 
-    echo "Sorting entries ..."
+    redraw | echo "Sorting entries ..."
     " We then sort the lines if the option is set
     if (g:DirDiffSort == 1)
         1,$call <SID>Sort("s:Strcmp")
@@ -281,7 +297,12 @@ function! <SID>DirDiff(srcA, srcB)
     call <SID>SetupSyntax()
 
     " Open the first diff
-    call <SID>DirDiffNext()
+    if( g:DirDiffOpenFirst==1 )
+        call <SID>DirDiffNext()
+    else
+        let b:currentDiff=-1
+        exe "normal gg"
+    endif
 endfunction
 
 " Set up syntax highlighing for the diff window
